@@ -1,2 +1,2 @@
-muendliche = 0
+mundklausur = 0
 nachklausur = 0

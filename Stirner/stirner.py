@@ -5,6 +5,8 @@ def truncate(f):
     return math.floor(f * 10 ** 1) / 10 ** 1
 
 def muendliche_berechnen(faecher, notentabelle):
+    config.mundklausur = 1
+    print(f"Sie müssen eine mündliche Prüfung {"im Fach" if len(faecher)==1 else "in Fächern"} {", ".join(faecher)} ablegen.")
     for fach in faecher:
         while True:
             try:
@@ -20,26 +22,45 @@ def muendliche_berechnen(faecher, notentabelle):
 
 def gesamt_berechnen(notentabelle):
     muendliche = []
-    if config.muendliche == 0:
+    nichtbestanden = []
+    if config.mundklausur == 0:
+        
         for fach in notentabelle:
+
             if notentabelle[fach]["schriftlich"] > 0.0:
                 notentabelle[fach]["gesamt"] =  truncate((notentabelle[fach]["semesternote"] + notentabelle[fach]["schriftlich"]) / 2)
+                
+                
                 if notentabelle[fach]["gesamt"] > 4.0:
                     muendliche.append(fach)
+                    nichtbestanden.append(fach)
                     print(f"Sie haben die FSP im Fach {fach} nicht bestanden und müssen Mündliche Prüfung bestehen!")
-                    config.muendliche = 1
+                
+                
                 if abs(notentabelle[fach]["semesternote"] - notentabelle[fach]["schriftlich"]) >= 1.0:
                     muendliche.append(fach)
                     print(f"Es gibt eine Abweichung zwischen Semesternote und Prüfungsnote im {fach} von mehr als einer Note!")
-                    config.muendliche = 1
+            
             else:
                 notentabelle[fach]["gesamt"] =  notentabelle[fach]["semesternote"]
-    else:
-        print(f"Sie müssen eine mündliche Prüfung in Fächern {", ".join(muendliche)} ablegen.")
-        muendliche_berechnen(muendliche, notentabelle)
-        for fach in muendliche:
-            notentabelle[fach]["gesamt"] =  truncate((notentabelle[fach]["gesamt"] + notentabelle[fach]["muendlich"]) / 2)
+        
+        
+        if len(muendliche) > 0:
+            
+            if len(nichtbestanden) >= 2:
+                return "Sie haben die FSP nicht bestanden. Bitte versuchen sie im nächsten Semester"
+            
+            else:
+                notentabelle = muendliche_berechnen(muendliche, notentabelle)
+                return gesamt_berechnen(notentabelle)
+    
+    elif config.mundklausur == 1:
 
+        for fach in notentabelle:
+            if notentabelle[fach]["muendlich"] > 0.0:  # Проверяем, если устные оценки есть
+                notentabelle[fach]["gesamt"] = truncate((notentabelle[fach]["gesamt"] + notentabelle[fach]["muendlich"]) / 2)
+        
+        return notentabelle
 
 def main():
     noten = {
@@ -80,7 +101,7 @@ def main():
                         except ValueError:
                             print("Die Note soll eine Zahl zwischen 1 und 5 sein.")
                     n = 1
-    print(gesamt_berechnen(noten))
+    result = gesamt_berechnen(noten)
         
 
 if __name__ == "__main__":
