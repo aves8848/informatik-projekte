@@ -1,11 +1,24 @@
 import math
 import config
+from tabulate import tabulate
 
 def truncate(f):
     return math.floor(f * 10 ** 1) / 10 ** 1
 
+def zeugnis_ausgeben(notentabelle):
+    zeilen = []
+    for fach, noten in notentabelle.items():
+        zeilen.append([fach, noten["gesamt"]])
+
+    gesamtnoten = [noten["gesamt"] for noten in notentabelle.values()]
+    durchschnittsnote = sum(gesamtnoten) / len(gesamtnoten)
+
+    zeilen.append(["Durchschnittsnote", round(durchschnittsnote, 1)])
+
+    return f"Zeugnis über die Feststellungsprüfung\n{tabulate(zeilen, headers=["Fach", "Note"], tablefmt="grid")}"
+
 def muendliche_berechnen(faecher, notentabelle):
-    config.mundklausur = 1
+    config.mundklausur = True
     print(f"Sie müssen eine mündliche Prüfung {"im Fach" if len(faecher)==1 else "in Fächern"} {", ".join(faecher)} ablegen.")
     for fach in faecher:
         while True:
@@ -23,7 +36,8 @@ def muendliche_berechnen(faecher, notentabelle):
 def gesamt_berechnen(notentabelle):
     muendliche = []
     nichtbestanden = []
-    if config.mundklausur == 0:
+    muendlichnichtbestanden = []
+    if not config.mundklausur:
         
         for fach in notentabelle:
 
@@ -48,17 +62,24 @@ def gesamt_berechnen(notentabelle):
         if len(muendliche) > 0:
             
             if len(nichtbestanden) >= 2:
-                return "Sie haben die FSP nicht bestanden. Bitte versuchen sie im nächsten Semester"
-            
+                config.fsp_bestanden = False
+                config.fsp_grund = "In zwei sind die Semesternote und schriftliche Prüfungsnote nicht ausreichend."
+                return
             else:
                 notentabelle = muendliche_berechnen(muendliche, notentabelle)
                 return gesamt_berechnen(notentabelle)
     
-    elif config.mundklausur == 1:
+    elif config.mundklausur:
 
         for fach in notentabelle:
             if notentabelle[fach]["muendlich"] > 0.0:  # Проверяем, если устные оценки есть
-                notentabelle[fach]["gesamt"] = truncate((notentabelle[fach]["gesamt"] + notentabelle[fach]["muendlich"]) / 2)
+                notentabelle[fach]["gesamt"] = truncate((notentabelle[fach]["semesternote"] + notentabelle[fach]["schriftlich"] + notentabelle[fach]["muendlich"]) / 3)
+                if notentabelle[fach]["gesamt"] > 4.0:
+                    muendlichnichtbestanden.append(fach)
+        if len(muendlichnichtbestanden) > 1:
+            config.fsp_bestanden = False
+            config.fsp_grund = "Nach den mündlichen Prüfungen in mehr als einem Fach ist der Durchschnitt der drei Noten nicht ausreichend."
+            return
         
         return notentabelle
 
@@ -102,6 +123,10 @@ def main():
                             print("Die Note soll eine Zahl zwischen 1 und 5 sein.")
                     n = 1
     result = gesamt_berechnen(noten)
+    if config.fsp_bestanden:
+        print(zeugnis_ausgeben(result))
+    else:
+        print(f"Sie haben die FSP nicht bestanden. \nGrund: {config.fsp_grund}")
         
 
 if __name__ == "__main__":
