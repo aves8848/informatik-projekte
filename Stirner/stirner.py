@@ -85,14 +85,15 @@ def gesamt_berechnen(notentabelle):
         
         if len(muendliche) > 0:
 
-            notentabelle = muendliche_berechnen(muendliche, notentabelle)
-            
             if len(nichtbestanden) > 1:
                 config.fsp_bestanden = False
-                config.fsp_grund = "In zwei sind die Semesternote und schriftliche Prüfungsnote nicht ausreichend."
+                config.fsp_grund = "In zwei Fächern sind die Semesternote und schriftliche Prüfungsnote nicht ausreichend."
                 return notentabelle
+
             
-            elif len(nichtbestanden) == 1:
+            notentabelle = muendliche_berechnen(muendliche, notentabelle)
+            
+            if len(nichtbestanden) == 1:
                 if not config.nachklausur:
                     notentabelle = nachklausur_berechnen(nichtbestanden[0], notentabelle)                
                     return gesamt_berechnen(notentabelle)
@@ -169,5 +170,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# Nachklausuren ändern
