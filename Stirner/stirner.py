@@ -9,13 +9,10 @@ def truncate(f):
 
 def get_valid_grade(fach, notentyp):
     while True:
-        
         try:
-            note = float(input(f"{notentyp}{"" if notentyp == "Semesternote" else " Note"} im Fach {fach}: "))
-            
+            note = float(input(f"{notentyp} im Fach {fach}: "))
             if 1.0 <= note <= 5.0:
                 return truncate(note)
-            
             else:
                 raise ValueError
         
@@ -24,12 +21,8 @@ def get_valid_grade(fach, notentyp):
 
 
 def zeugnis_ausgeben(notentabelle):
-    zeilen = []
-    for fach, noten in notentabelle.items():
-        zeilen.append([fach, noten["gesamt"]])
-
-    gesamtnoten = [noten["gesamt"] for noten in notentabelle.values()]
-    durchschnittsnote = sum(gesamtnoten) / len(gesamtnoten)
+    zeilen = [[fach, noten["gesamt"]] for fach, noten in notentabelle.items()]
+    durchschnittsnote = sum(noten["gesamt"] for noten in notentabelle.values()) / len(notentabelle)
 
     zeilen.append(["Durchschnittsnote", round(durchschnittsnote, 1)])
 
@@ -39,9 +32,8 @@ def nachklausur_berechnen(fach, notentabelle):
     config.mundklausur = False
     config.nachklausur = fach
     print(f"Sie haben eine Nachklausur im Fach {fach}.")
-    notentabelle[fach]["schriftlich"] = get_valid_grade(fach, "Nachklausur FSP")
-    notentabelle[fach]["gesamt"] = 0.0
-    notentabelle[fach]["muendlich"] = 0.0
+    notentabelle[fach]["schriftlich"] = get_valid_grade(fach, "Nachklausur Note")
+    notentabelle[fach]["gesamt"] = notentabelle[fach]["muendlich"] = 0.0
     return notentabelle
 
 
@@ -50,7 +42,7 @@ def muendliche_berechnen(faecher, notentabelle):
     print(f"Sie müssen eine mündliche Prüfung {"im Fach" if len(faecher)==1 else "in Fächern"} {", ".join(faecher)} ablegen.")
 
     for fach in faecher:
-        notentabelle[fach]["muendlich"] = get_valid_grade(fach, "Mündliche")
+        notentabelle[fach]["muendlich"] = get_valid_grade(fach, "Mündliche Note")
 
     return notentabelle
 
