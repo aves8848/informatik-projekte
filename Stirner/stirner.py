@@ -3,10 +3,12 @@ import config
 from tabulate import tabulate
 
 
+# Rundet eine Zahl auf eine Nachkommastelle ab
 def truncate(f):
     return math.floor(f * 10 ** 1) / 10 ** 1
 
 
+# Fragt eine Note ab und validiert, ob sie zwischen 1.0 und 5.0 liegt
 def get_valid_grade(fach, notentyp):
     while True:
         try:
@@ -20,6 +22,7 @@ def get_valid_grade(fach, notentyp):
             print("Die Note soll eine Zahl zwischen 1 und 5 sein.")
 
 
+# Gibt das Zeugnis mit den Fächern und Durchschnittsnote aus
 def zeugnis_ausgeben(notentabelle):
     zeilen = [[fach, noten["gesamt"]] for fach, noten in notentabelle.items()]
     durchschnittsnote = sum(noten["gesamt"] for noten in notentabelle.values()) / len(notentabelle)
@@ -28,6 +31,8 @@ def zeugnis_ausgeben(notentabelle):
 
     return f"Zeugnis über die Feststellungsprüfung\n{tabulate(zeilen, headers=["Fach", "Note"], tablefmt="fancy_grid")}"
 
+
+# Berechnet die Nachklausur für das gegebene Fach
 def nachklausur_berechnen(fach, notentabelle):
     config.mundklausur = False
     config.nachklausur = fach
@@ -37,6 +42,7 @@ def nachklausur_berechnen(fach, notentabelle):
     return notentabelle
 
 
+# Berechnet die mündliche Prüfung für die betroffenen Fächer
 def muendliche_berechnen(faecher, notentabelle):
     config.mundklausur = True
     print(f"Sie müssen eine mündliche Prüfung {"im Fach" if len(faecher)==1 else "in Fächern"} {", ".join(faecher)} ablegen.")
@@ -47,11 +53,13 @@ def muendliche_berechnen(faecher, notentabelle):
     return notentabelle
 
 
+# Berechnet die Gesamtbewertung und entscheidet über Nachklausur oder Mündliche
 def gesamt_berechnen(notentabelle):
     muendliche = []
     nichtbestanden = []
     muendlichnichtbestanden = []
 
+    # Berechnung der Gesamtbewertung und Ermittlung der Prüfungen
     if not config.mundklausur:
         
         for fach in notentabelle:
@@ -90,7 +98,7 @@ def gesamt_berechnen(notentabelle):
                     notentabelle = nachklausur_berechnen(nichtbestanden[0], notentabelle)                
                     return gesamt_berechnen(notentabelle)
         
-    
+    # Verarbeitung der mündlichen Prüfungen und Nachklausur
     elif config.mundklausur:
 
         for fach in notentabelle:
@@ -115,6 +123,7 @@ def gesamt_berechnen(notentabelle):
                 notentabelle = nachklausur_berechnen(muendlichnichtbestanden[0], notentabelle)
                 return gesamt_berechnen(notentabelle)
 
+    # Überprüfung, ob Fächer mit nicht bestandener Gesamtnote vorhanden sind
     for fach in notentabelle:
         if notentabelle[fach]["gesamt"] > 4.0:
             config.fsp_bestanden = False
@@ -125,17 +134,19 @@ def gesamt_berechnen(notentabelle):
 
 
 def main():
+    # Initialisiert die Noten für die Fächer
     noten = {
         "Deutsch": {"semesternote": 0.0, "schriftlich": 0.0, "muendlich": 0.0, "gesamt": 0.0},
         "Mathematik": {"semesternote": 0.0, "schriftlich": 0.0, "muendlich": 0.0, "gesamt": 0.0},
         "Physik": {"semesternote": 0.0, "schriftlich": 0.0, "muendlich": 0.0, "gesamt": 0.0},
         "Informatik": {"semesternote": 0.0, "schriftlich": 0.0, "muendlich": 0.0, "gesamt": 0.0}}
 
-
+    # Fragt die Semesternoten für alle Fächer ab
     for fach in noten:
         noten[fach]["semesternote"] = get_valid_grade(fach, "Semesternote")
 
 
+    # Validierung der Fächer für die schriftliche Prüfung
     n = 0
 
     while n != 1:
@@ -151,6 +162,7 @@ def main():
                     noten[fach]["schriftlich"] = get_valid_grade(fach, "Schriftliche FSP")
                     n = 1
 
+    # Berechnet die Gesamtnoten und gibt das Ergebnis aus
     result = gesamt_berechnen(noten)
 
     if config.fsp_bestanden:
