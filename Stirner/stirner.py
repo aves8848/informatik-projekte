@@ -103,7 +103,7 @@ def gesamt_berechnen(notentabelle):
 
         for fach in notentabelle:
             
-            if notentabelle[fach]["muendlich"] > 0.0:  # Проверяем, если устные оценки есть
+            if notentabelle[fach]["muendlich"] > 0.0:
                 notentabelle[fach]["gesamt"] = truncate((notentabelle[fach]["semesternote"] + notentabelle[fach]["schriftlich"] + notentabelle[fach]["muendlich"]) / 3)
                 
                 if notentabelle[fach]["gesamt"] > 4.0:
@@ -158,7 +158,7 @@ def main():
     
         else:
             for fach in fsp_geschrieben:
-                if isinstance(fach, str) and fach in [fach for fach in noten] and len(fsp_geschrieben) == 3:
+                if isinstance(fach, str) and fach in noten.keys() and len(fsp_geschrieben) == 3:
                     noten[fach]["schriftlich"] = get_valid_grade(fach, "Schriftliche FSP")
                     n = 1
 
