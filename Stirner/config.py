@@ -1,4 +1,4 @@
 mundklausur = False
-nachklausur = 0
+nachklausur = False
 fsp_bestanden = True
 fsp_grund = ""

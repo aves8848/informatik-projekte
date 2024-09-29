@@ -3,6 +3,10 @@ import config
 from tabulate import tabulate
 
 
+def truncate(f):
+    return math.floor(f * 10 ** 1) / 10 ** 1
+
+
 def get_valid_grade(fach, notentyp):
     while True:
         
@@ -19,10 +23,6 @@ def get_valid_grade(fach, notentyp):
             print("Die Note soll eine Zahl zwischen 1 und 5 sein.")
 
 
-def truncate(f):
-    return math.floor(f * 10 ** 1) / 10 ** 1
-
-
 def zeugnis_ausgeben(notentabelle):
     zeilen = []
     for fach, noten in notentabelle.items():
@@ -34,6 +34,23 @@ def zeugnis_ausgeben(notentabelle):
     zeilen.append(["Durchschnittsnote", round(durchschnittsnote, 1)])
 
     return f"Zeugnis über die Feststellungsprüfung\n{tabulate(zeilen, headers=["Fach", "Note"], tablefmt="fancy_grid")}"
+
+def nachklausur_berechnen(fach, notentabelle):
+    print(f"Sie haben eine Nachklausur im Fach {fach}.")
+    notentabelle[fach]["schriftlich"] = get_valid_grade(fach, "Nachklausur FSP")
+    notentabelle[fach]["gesamt"] =  truncate((notentabelle[fach]["semesternote"] + notentabelle[fach]["schriftlich"]) / 2)
+    
+    if notentabelle[fach]["gesamt"] > 4.0:
+        print(f"Sie müssen eine mündliche Prüfung im Fach {fach} ablegen.")
+        notentabelle[fach]["muendlich"] = get_valid_grade(fach, "Mündliche Nachklausur")
+        gesamt_note = (notentabelle[fach]["semesternote"] + notentabelle[fach]["schriftlich"] + notentabelle[fach]["muendlich"]) / 3
+        notentabelle[fach]["gesamt"] = truncate(gesamt_note)
+    
+    if notentabelle[fach]["gesamt"] > 4.0:
+        config.fsp_bestanden = False
+        config.fsp_grund = f"Sie haben die Nachklausur im Fach {fach} nicht bestanden."
+
+    return notentabelle
 
 
 def muendliche_berechnen(faecher, notentabelle):
@@ -50,6 +67,7 @@ def gesamt_berechnen(notentabelle):
     muendliche = []
     nichtbestanden = []
     muendlichnichtbestanden = []
+
     if not config.mundklausur:
         
         for fach in notentabelle:
@@ -69,18 +87,26 @@ def gesamt_berechnen(notentabelle):
             
             else:
                 notentabelle[fach]["gesamt"] =  notentabelle[fach]["semesternote"]
-        
+                if notentabelle[fach]["gesamt"] > 4.0:
+                    nichtbestanden.append(fach)
         
         if len(muendliche) > 0:
+
+            notentabelle = muendliche_berechnen(muendliche, notentabelle)
             
-            if len(nichtbestanden) >= 2:
+            if len(nichtbestanden) > 1:
                 config.fsp_bestanden = False
                 config.fsp_grund = "In zwei sind die Semesternote und schriftliche Prüfungsnote nicht ausreichend."
                 return
             
+            elif len(nichtbestanden) == 1:
+                config.nachklausur = nichtbestanden[0]
+                notentabelle = nachklausur_berechnen(config.nachklausur, notentabelle)
+                return notentabelle
+            
             else:
-                notentabelle = muendliche_berechnen(muendliche, notentabelle)
                 return gesamt_berechnen(notentabelle)
+        
     
     elif config.mundklausur:
 
@@ -96,6 +122,10 @@ def gesamt_berechnen(notentabelle):
             config.fsp_bestanden = False
             config.fsp_grund = "Nach den mündlichen Prüfungen in mehr als einem Fach ist der Durchschnitt der drei Noten nicht ausreichend."
             return
+        elif len(muendlichnichtbestanden) == 1:
+            config.nachklausur = muendlichnichtbestanden[0]
+            notentabelle = nachklausur_berechnen(config.nachklausur, notentabelle)
+            
         
         return notentabelle
 
