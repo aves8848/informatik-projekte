@@ -87,6 +87,7 @@ def gesamt_berechnen(notentabelle):
                     notentabelle[fach]["gesamt"] =  notentabelle[fach]["semesternote"]
                     if notentabelle[fach]["gesamt"] > 4.0:
                         nichtbestanden.append(fach)
+                        muendliche.append(fach)
         
         if len(muendliche) > 0:
 
@@ -144,7 +145,8 @@ def main():
         "Deutsch": {"semesternote": 0.0, "schriftlich": 0.0, "muendlich": 0.0, "gesamt": 0.0},
         "Mathematik": {"semesternote": 0.0, "schriftlich": 0.0, "muendlich": 0.0, "gesamt": 0.0},
         "Physik": {"semesternote": 0.0, "schriftlich": 0.0, "muendlich": 0.0, "gesamt": 0.0},
-        "Informatik": {"semesternote": 0.0, "schriftlich": 0.0, "muendlich": 0.0, "gesamt": 0.0}}
+        "Informatik": {"semesternote": 0.0, "schriftlich": 0.0, "muendlich": 0.0, "gesamt": 0.0},
+        "Praktikum": {"semesternote": 0.0, "schriftlich": 0.0, "muendlich": 0.0, "gesamt": 0.0}}
 
     # Überprüfen ob der Student Deutsch befreit ist
     while True:
