@@ -21,6 +21,16 @@ def get_valid_grade(fach, notentyp):
         except ValueError:
             print("Die Note soll eine Zahl zwischen 1 und 5 sein.")
 
+def get_valid_answer(text, userconfig):
+    while True:
+        eingabe = input(text).lower().replace(" ","")
+        if eingabe in ["yes", "ya", "yey", "yap", "y", "ja", "j"]:
+            setattr(config, userconfig, True)
+            break
+        elif eingabe in ["nah", "ne", "nein", "nicht", "n", "no"]:
+            setattr(config, userconfig, False)
+            break
+    return getattr(config, userconfig)
 
 # Gibt das Zeugnis mit den Fächern und Durchschnittsnote aus
 def zeugnis_ausgeben(notentabelle):
@@ -71,9 +81,12 @@ def gesamt_berechnen(notentabelle):
 
             if notentabelle[fach]["gesamt"] == 0.0:
                 if notentabelle[fach]["schriftlich"] > 0.0:
-                    notentabelle[fach]["gesamt"] =  truncate((notentabelle[fach]["semesternote"] + notentabelle[fach]["schriftlich"]) / 2)
+                    if config.extern:
+                        notentabelle[fach]["gesamt"] = truncate((notentabelle[fach]["schriftlich"] * 2) / 2)
+                    else:
+                        notentabelle[fach]["gesamt"] = truncate((notentabelle[fach]["semesternote"] + notentabelle[fach]["schriftlich"]) / 2)
                     
-                    if notentabelle[fach]["gesamt"] > 4.0:
+                    if notentabelle[fach]["gesamt"] > 4.0 or (config.extern and notentabelle[fach]["gesamt"] > 3.5):
                         muendliche.append(fach)
                         nichtbestanden.append(fach)
                         print(f"Sie haben die FSP im Fach {fach} nicht bestanden und müssen Mündliche Prüfung bestehen!")
@@ -84,33 +97,43 @@ def gesamt_berechnen(notentabelle):
                         print(f"Es gibt eine Abweichung zwischen Semesternote und Prüfungsnote im {fach} von mehr als einer Note!")
                 
                 else:
-                    notentabelle[fach]["gesamt"] =  notentabelle[fach]["semesternote"]
-                    if notentabelle[fach]["gesamt"] > 4.0:
-                        nichtbestanden.append(fach)
+                    if config.extern:
                         muendliche.append(fach)
+                        print(f"Sie haben die externe FSP im Fach {fach} nicht geschrieben und müssen das mündlich ablegen.")
+                    else:
+                        notentabelle[fach]["gesamt"] =  notentabelle[fach]["semesternote"]
+                        if notentabelle[fach]["gesamt"] > 4.0:
+                            nichtbestanden.append(fach)
+                            muendliche.append(fach)
         
         if len(muendliche) > 0:
 
-            if len(nichtbestanden) > 1:
+            if len(nichtbestanden) > 1 and not config.extern:
                 config.fsp_bestanden = False
                 config.fsp_grund = "In zwei Fächern sind die Semesternote und schriftliche Prüfungsnote nicht ausreichend."
                 return notentabelle
 
-            
             notentabelle = muendliche_berechnen(muendliche, notentabelle)
             
-            if len(nichtbestanden) == 1:
+            if len(nichtbestanden) == 1 and not config.extern:
                 if not config.nachklausur:
                     notentabelle = nachklausur_berechnen(nichtbestanden[0], notentabelle)                
                     return gesamt_berechnen(notentabelle)
         
     # Verarbeitung der mündlichen Prüfungen und Nachklausur
-    elif config.mundklausur:
+    if config.mundklausur:
 
         for fach in notentabelle:
             
             if notentabelle[fach]["muendlich"] > 0.0:
-                notentabelle[fach]["gesamt"] = truncate((notentabelle[fach]["semesternote"] + notentabelle[fach]["schriftlich"] + notentabelle[fach]["muendlich"]) / 3)
+                if config.extern and notentabelle[fach]["gesamt"] == 0.0:
+                    notentabelle[fach]["gesamt"] = truncate(notentabelle[fach]["muendlich"])
+                    # For external students, written grades count double, oral single
+                elif config.extern and notentabelle[fach]["gesamt"] > 0.0:
+                    notentabelle[fach]["gesamt"] = truncate((notentabelle[fach]["schriftlich"] * 2 + notentabelle[fach]["muendlich"]) / 3)
+                else:
+                    # For regular students
+                    notentabelle[fach]["gesamt"] = truncate((notentabelle[fach]["semesternote"] + notentabelle[fach]["schriftlich"] + notentabelle[fach]["muendlich"]) / 3)
                 
                 if notentabelle[fach]["gesamt"] > 4.0:
                     muendlichnichtbestanden.append(fach)
@@ -148,21 +171,18 @@ def main():
         "Informatik": {"semesternote": 0.0, "schriftlich": 0.0, "muendlich": 0.0, "gesamt": 0.0},
         "Praktikum": {"semesternote": 0.0, "schriftlich": 0.0, "muendlich": 0.0, "gesamt": 0.0}}
 
+    # Überprüfen ob der Student die FSP extern ablegen will
+    if get_valid_answer("Machen sie die FSP extern? ", "extern"):
+        del noten["Praktikum"]
+
     # Überprüfen ob der Student Deutsch befreit ist
-    while True:
-        deutsch_befreit = input("Sind sie Deutsch befreit? ").lower().replace(" ","")
-        if deutsch_befreit in ["yes", "ya", "yey", "yap", "y", "ja", "j"]:
-            config.deutsch_befreit = True
-            del noten["Deutsch"]
-            break
-        elif deutsch_befreit in ["nah", "ne", "nein", "nicht", "n", "no"]:
-            config.deutsch_befreit = False
-            break
+    if get_valid_answer("Sind Sie von Deutsch befreit? ", "deutsch_befreit"):
+        del noten["Deutsch"]
 
     # Fragt die Semesternoten für alle Fächer ab
-    for fach in noten:
-        noten[fach]["semesternote"] = get_valid_grade(fach, "Semesternote")
-
+    if not config.extern:
+        for fach in noten:
+            noten[fach]["semesternote"] = get_valid_grade(fach, "Semesternote")
 
     # Validierung der Fächer für die schriftliche Prüfung
     n = 0
@@ -181,6 +201,8 @@ def main():
             for fach in fsp_geschrieben:
                 if isinstance(fach, str) and fach in noten.keys():
                     noten[fach]["schriftlich"] = get_valid_grade(fach, "Schriftliche FSP")
+                    if config.extern:
+                        noten[fach]["semesternote"] = noten[fach]["schriftlich"]
                     n = 1
 
     # Berechnet die Gesamtnoten und gibt das Ergebnis aus
