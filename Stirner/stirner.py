@@ -25,6 +25,11 @@ def get_valid_grade(fach, notentyp):
 # Gibt das Zeugnis mit den Fächern und Durchschnittsnote aus
 def zeugnis_ausgeben(notentabelle):
     zeilen = [[fach, noten["gesamt"]] for fach, noten in notentabelle.items()]
+
+    #Im Fall wenn man deutsch befreit ist sollen wir am Top von unserer Tabelle eine zusätzliche Zeile dafür addieren.
+    if config.deutsch_befreit:
+        zeilen.insert(0, ["Deutsch", "befreit"])
+
     durchschnittsnote = sum(noten["gesamt"] for noten in notentabelle.values()) / len(notentabelle)
 
     zeilen.append(["Durchschnittsnote", round(durchschnittsnote, 1)])
@@ -141,6 +146,17 @@ def main():
         "Physik": {"semesternote": 0.0, "schriftlich": 0.0, "muendlich": 0.0, "gesamt": 0.0},
         "Informatik": {"semesternote": 0.0, "schriftlich": 0.0, "muendlich": 0.0, "gesamt": 0.0}}
 
+    # Überprüfen ob der Student Deutsch befreit ist
+    while True:
+        deutsch_befreit = input("Sind sie Deutsch befreit? ").lower().replace(" ","")
+        if deutsch_befreit in ["yes", "ya", "yey", "yap", "y", "ja", "j"]:
+            config.deutsch_befreit = True
+            del noten["Deutsch"]
+            break
+        elif deutsch_befreit in ["nah", "ne", "nein", "nicht", "n", "no"]:
+            config.deutsch_befreit = False
+            break
+
     # Fragt die Semesternoten für alle Fächer ab
     for fach in noten:
         noten[fach]["semesternote"] = get_valid_grade(fach, "Semesternote")
@@ -153,12 +169,15 @@ def main():
         fsp_geschrieben = input("In welchen Fächer haben sie FSP geschrieben? ").capitalize().replace(" ", "").split(",")
         fsp_geschrieben = [i.capitalize() for i in fsp_geschrieben]
 
-        if ("Deutsch" not in fsp_geschrieben or "Mathematik" not in fsp_geschrieben) or ("Informatik" in fsp_geschrieben and "Physik" in fsp_geschrieben):
-                    print("Sie müssen Deutsch und Mathematik als Pflichtfach schriftlich bestehen und können nicht gleichzeitig Informatik und Physik schreiben.")
-    
+        if ("Deutsch" not in fsp_geschrieben and config.deutsch_befreit == False) or ("Mathematik" not in fsp_geschrieben): 
+            print("Sie müssen Deutsch und Mathematik als Pflichtfach schriftlich ablegen." if config.deutsch_befreit == False else "Sie müssen Mathematik als Pflichtfach schriftlich ablegen.")
+        elif ("Informatik" in fsp_geschrieben and "Physik" in fsp_geschrieben):
+            print("Sie dürfen entweder Informatik oder Physik schriftlich ablegen.")
+        elif (len(fsp_geschrieben) > 3 and config.deutsch_befreit == False) or (len(fsp_geschrieben) > 2 and config.deutsch_befreit == True):
+            print("Sie haben zu viel Fächer eingetippt.")
         else:
             for fach in fsp_geschrieben:
-                if isinstance(fach, str) and fach in noten.keys() and len(fsp_geschrieben) == 3:
+                if isinstance(fach, str) and fach in noten.keys():
                     noten[fach]["schriftlich"] = get_valid_grade(fach, "Schriftliche FSP")
                     n = 1
 
