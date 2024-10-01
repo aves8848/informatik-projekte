@@ -1,11 +1,11 @@
-import math
+from math import floor
 import config
 from tabulate import tabulate
 
 
 # Rundet eine Zahl auf eine Nachkommastelle ab
 def truncate(f):
-    return math.floor(f * 10 ** 1) / 10 ** 1
+    return floor(f * 10 ** 1) / 10 ** 1
 
 
 # Fragt eine Note ab und validiert, ob sie zwischen 1.0 und 5.0 liegt
@@ -21,15 +21,22 @@ def get_valid_grade(fach, notentyp):
         except ValueError:
             print("Die Note soll eine Zahl zwischen 1 und 5 sein.")
 
+#Bekommt text für die Frage und configattribute und ausgibt den mit dem Antwort auf der Ja/Nein Frage
 def get_valid_answer(text, userconfig):
     while True:
-        eingabe = input(text).lower().replace(" ","")
-        if eingabe in ["yes", "ya", "yey", "yap", "y", "ja", "j"]:
-            setattr(config, userconfig, True)
-            break
-        elif eingabe in ["nah", "ne", "nein", "nicht", "n", "no"]:
-            setattr(config, userconfig, False)
-            break
+        try:
+            eingabe = input(text).lower().replace(" ","")
+            if eingabe in ["yes", "ya", "yey", "yap", "y", "ja", "j"]:
+                setattr(config, userconfig, True)
+                break
+            elif eingabe in ["nah", "ne", "nein", "nicht", "n", "no"]:
+                setattr(config, userconfig, False)
+                break
+            else:
+                raise ValueError
+        except ValueError:
+            print("Das Antwort soll im Format Ja/Nein sein.")
+
     return getattr(config, userconfig)
 
 # Gibt das Zeugnis mit den Fächern und Durchschnittsnote aus
@@ -40,19 +47,21 @@ def zeugnis_ausgeben(notentabelle):
     if config.deutsch_befreit:
         zeilen.insert(0, ["Deutsch", "befreit"])
 
-    durchschnittsnote = sum(noten["gesamt"] for noten in notentabelle.values()) / len(notentabelle)
+    durchschnittsnote = truncate(sum(noten["gesamt"] for noten in notentabelle.values()) / len(notentabelle))
 
-    zeilen.append(["Durchschnittsnote", round(durchschnittsnote, 1)])
+    zeilen.append(["Durchschnittsnote", durchschnittsnote])
 
     return f"Zeugnis über die Feststellungsprüfung\n{tabulate(zeilen, headers=["Fach", "Note"], tablefmt="fancy_grid")}"
 
 
 # Berechnet die Nachklausur für das gegebene Fach
 def nachklausur_berechnen(fach, notentabelle):
+
     config.mundklausur = False
     config.nachklausur = fach
-    print(f"Sie haben eine Nachklausur im Fach {fach}.")
-    notentabelle[fach]["schriftlich"] = get_valid_grade(fach, "Nachklausur Note")
+    print(f"Sie haben eine Nachprüfung im Fach {fach}.")
+
+    notentabelle[fach]["schriftlich"] = get_valid_grade(fach, "Note in der Nachprüfung")
     notentabelle[fach]["gesamt"] = notentabelle[fach]["muendlich"] = 0.0
     return notentabelle
 
